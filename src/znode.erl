@@ -47,6 +47,12 @@ handle_call({delete, Uuid, Version}, _From, State) ->
 	   State);
 handle_call(unlink, _From, State) ->
     {stop, normal, ok, State};
+handle_call(get_children, _From, State) ->
+    Children = State#state.children,
+    Data = Children#children.data,
+    {reply,
+     {ok, Children#children.version, sets:size(Data), sets:to_list(Data)},
+     State};
 handle_call(_Request, _From, _State) ->
     throw(eimpl).
 
@@ -67,11 +73,16 @@ delete(_, _, _, IsPresent, Pid, State)
     {reply, {error, notfound, "Could not find node"}, State};
 delete(Uuid, _, _, true, Pid, State) ->
     Children = State#state.children,
-    ok = gen_server:call(Pid, unlink),
-    Data = sets:del_element(Uuid, Children#children.data),
-    NewChildren = Children#children{version=Children#children.version+1,
-				    data=Data},
-    {reply, ok, State#state{children=NewChildren}}.
+    case gen_server:call(Pid, get_children) of
+	{ok, _, 0, _} -> 
+	    ok = gen_server:call(Pid, unlink),
+	    Data = sets:del_element(Uuid, Children#children.data),
+	    NewChildren = Children#children{version=Children#children.version+1,
+					    data=Data},
+	    {reply, ok, State#state{children=NewChildren}};
+	{ok, _, Count, _} ->
+	    {reply, {error, haschildren, "Has children"}, State}
+    end.
 
 
     

@@ -32,6 +32,17 @@ delete_test_() ->
 	    {error, bad_arguments, _} = znodeapi:create("/foo/bar/baz", 1)
 	end)
     }.
+
+deletechildren_test_() ->
+    {setup, fun setup/0, 
+     ?_test(
+	begin
+	    ok = znodeapi:create("/foo/bar", 3),
+	    ok = znodeapi:create("/foo/bar/baz", 1),
+	    {error, haschildren, _} = znodeapi:delete("/foo/bar", 4)
+	end)
+    }.
+
    
     
 	
