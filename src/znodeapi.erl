@@ -6,6 +6,7 @@
 
 uuid_to_name(Uuid) -> lists:flatten("znode-" ++ Uuid).
 uuid_to_key(Uuid) -> {n, g, uuid_to_name(Uuid)}.
+uuid_to_fqn(Uuid) -> lists:flatten(?ROOT_ZNODE ++ Uuid).
     
 lookup(Uuid) ->
     gproc:lookup_global_name(uuid_to_name(Uuid)).
@@ -46,7 +47,7 @@ parent_from_uuid(Uuid) ->
     lists:flatten(Path).
 
 create(Uuid, Version) ->
-    Fqn = ?ROOT_ZNODE ++ Uuid,
+    Fqn = uuid_to_fqn(Uuid),
     Parent = parent_from_uuid(Fqn),
     case lookup(Parent) of
 	undefined ->
