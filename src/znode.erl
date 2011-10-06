@@ -28,16 +28,10 @@ init_(Uuid) ->
 
 handle_call({create, Uuid, Version}, _From, State) ->
     Children = State#state.children,
-    if
-	Children#children.version =/= Version ->
-	    {reply, {error, stale, "Stale version"}, State};
-	true ->
-	    {ok, _} = znodeapi:create_actor(Uuid),
-	    Data = sets:add_element(Uuid, Children#children.data),
-	    NewChildren = Children#children{version=Children#children.version+1,
-					    data=Data},
-	    {reply, ok, State#state{children=NewChildren}}
-    end;
+    create(Uuid, 
+	   Children#children.version, Version,
+	   sets:is_element(Uuid, Children#children.data),
+	   State);
 handle_call({delete, Uuid, Version}, _From, State) ->
     Children = State#state.children,
     delete(Uuid,
@@ -64,6 +58,19 @@ handle_info(_Info, _State) ->
 
 terminate(_Reason, _State) ->
     ok.
+
+create(_, OurVersion, TheirVersion, _, State) 
+  when OurVersion =/= TheirVersion -> 
+    {reply, {error, stale, "Stale version"}, State};
+create(_, _, _, true, State) ->
+    {reply, {error, exists, "Znode already exists"}, State};
+create(Uuid, _, _, false, State) ->
+    Children = State#state.children,
+    {ok, _} = znodeapi:create_actor(Uuid),
+    Data = sets:add_element(Uuid, Children#children.data),
+    NewChildren = Children#children{version=Children#children.version+1,
+				    data=Data},
+    {reply, ok, State#state{children=NewChildren}}.
 
 delete(_, OurVersion, TheirVersion, _, _, State)
   when OurVersion =/= TheirVersion -> 

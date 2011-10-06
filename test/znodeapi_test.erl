@@ -19,6 +19,7 @@ create_test_() ->
 	begin
 	    ok = znodeapi:create("/foo", 1),
 	    ok = znodeapi:create("/foo/bar", 1),
+	    {error, exists, _} = znodeapi:create("/foo/bar", 2),
 	    {error, bad_arguments, _} = znodeapi:create("/bar/foo", 1)
 	end)
     }.
