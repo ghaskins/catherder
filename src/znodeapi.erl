@@ -5,7 +5,7 @@
 -export([uuid_to_name/1, uuid_to_key/1, lookup/1,
 	 strip_rootznode/1,
 	 find/1, create_actor/2,
-	 create/2, create/3, delete/2, get_children/1,
+	 create/1, create/2, delete/2, get_children/1,
 	 get_data/1, set_data/3,
 	 subscribe/1, notify/2]).
 
@@ -56,7 +56,7 @@ strip_rootznode(Fqn) ->
     Path = lists:map(fun(I) -> "/" ++ I end, Tokens),
     lists:flatten(Path).
 
-invoke_parent(Uuid, Version, Op) ->
+invoke_parent(Uuid, Op) ->
     Parent = extract_parent(uuid_to_fqn(Uuid)),
     case lookup(Parent) of
 	undefined ->
@@ -73,14 +73,14 @@ call_generic(Uuid, Msg) ->
 	    gen_server:call(Pid, Msg)
     end.        
 
-create(Uuid, Version) ->
-    create(Uuid, Version, <<>>).
+create(Uuid) ->
+    create(Uuid, <<>>).
 
-create(Uuid, Version, Data) ->
-    invoke_parent(Uuid, Version, {create, uuid_to_fqn(Uuid), Version, Data}).
+create(Uuid, Data) ->
+    invoke_parent(Uuid, {create, uuid_to_fqn(Uuid), Data}).
   
 delete(Uuid, Version) ->
-    invoke_parent(Uuid, Version, {delete, uuid_to_fqn(Uuid), Version}).
+    invoke_parent(Uuid, {delete, uuid_to_fqn(Uuid), Version}).
 
 get_children(Uuid) ->
     call_generic(Uuid, get_children).

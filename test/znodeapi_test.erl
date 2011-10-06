@@ -17,11 +17,11 @@ create_test_() ->
     {setup, fun setup/0, 
      ?_test(
 	begin
-	    ok = znodeapi:create("/foo", 1),
-	    ok = znodeapi:create("/foo/bar", 1),
+	    ok = znodeapi:create("/foo"),
+	    ok = znodeapi:create("/foo/bar"),
 	    {ok, 2, 1, ["/foo/bar"]} = znodeapi:get_children("/foo"),
-	    {error, exists, _} = znodeapi:create("/foo/bar", 2),
-	    {error, bad_arguments, _} = znodeapi:create("/bar/foo", 1)
+	    {error, exists, _} = znodeapi:create("/foo/bar"),
+	    {error, bad_arguments, _} = znodeapi:create("/bar/foo")
 	end)
     }.
 
@@ -42,7 +42,7 @@ delete_test_() ->
 	begin
 	    {error, stale, _} = znodeapi:delete("/foo/bar", 1),
 	    ok = znodeapi:delete("/foo/bar", 2),
-	    {error, bad_arguments, _} = znodeapi:create("/foo/bar/baz", 1)
+	    {error, bad_arguments, _} = znodeapi:create("/foo/bar/baz")
 	end)
     }.
 
@@ -50,8 +50,8 @@ deletechildren_test_() ->
     {setup, fun setup/0, 
      ?_test(
 	begin
-	    ok = znodeapi:create("/foo/bar", 3),
-	    ok = znodeapi:create("/foo/bar/baz", 1),
+	    ok = znodeapi:create("/foo/bar"),
+	    ok = znodeapi:create("/foo/bar/baz"),
 	    {error, haschildren, _} = znodeapi:delete("/foo/bar", 4)
 	end)
     }.

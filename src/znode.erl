@@ -27,10 +27,9 @@ init_(Uuid, Props) ->
     Data = proplists:get_value(data, Props, <<>>),
     {ok, #state{uuid=Uuid, data=#data{value=Data}}}.    
 
-handle_call({create, Uuid, Version, Data}, _From, State) ->
+handle_call({create, Uuid, Data}, _From, State) ->
     Children = State#state.children,
     create(Uuid, 
-	   Children#children.version, Version,
 	   sets:is_element(Uuid, Children#children.data),
 	   Data,
 	   State);
@@ -70,12 +69,9 @@ get_children(State) ->
 	       I <- sets:to_list(Children#children.data)],
     {ok, Children#children.version, length(Data), Data}.
 
-create(_, OurVersion, TheirVersion, _, _, State) 
-  when OurVersion =/= TheirVersion -> 
-    {reply, {error, stale, "Stale version"}, State};
-create(_, _, _, true, _, State) ->
+create(_, true, _, State) ->
     {reply, {error, exists, "Znode already exists"}, State};
-create(Uuid, _, _, false, Payload, State) ->
+create(Uuid, false, Payload, State) ->
     Children = State#state.children,
     {ok, _} = znodeapi:create_actor(Uuid, [{data, Payload}]),
     Data = sets:add_element(Uuid, Children#children.data),
