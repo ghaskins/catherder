@@ -104,8 +104,10 @@ set_data(OurVersion, TheirVersion, _, State)
     {reply, {error, stale, "Stale version"}, State};
 set_data(_, _, Payload, State) ->
     Data = State#state.data,
-    {reply, ok, State#state{data=Data#data{version=Data#data.version+1,
-					   value=Payload}}}.
+    NewData = Data#data{version=Data#data.version+1, value=Payload},
+    znodeapi:notify(State#state.uuid,
+		    {data, NewData#data.version, NewData#data.value}),
+    {reply, ok, State#state{data=NewData}}.
 
 
     
