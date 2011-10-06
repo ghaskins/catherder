@@ -1,7 +1,7 @@
 -module(znode).
 -behavior(gen_server).
 
--export([start_link/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
+-export([start_link/2, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
 -include("catherder.hrl").
 
@@ -10,27 +10,29 @@
 -record(stat, {version=1, extra}).
 -record(state, {uuid, data=#data{}, children=#children{}, stat=#stat{}}).
 
-start_link(Uuid) ->
-    gen_server:start_link(?MODULE, Uuid, []).
+start_link(Uuid, Props) ->
+    gen_server:start_link(?MODULE, {Uuid, Props}, []).
 
-init(?ROOT_ZNODE) ->
-    init_(?ROOT_ZNODE);
-init(Uuid) ->
+init({?ROOT_ZNODE, Props}) ->
+    init_(?ROOT_ZNODE, Props);
+init({Uuid, Props}) ->
     try
-	init_(Uuid)
+	init_(Uuid, Props)
     catch
 	error:badarg -> {stop, normal}
     end.
 
-init_(Uuid) ->
+init_(Uuid, Props) ->
     true = gproc:add_global_name(znodeapi:uuid_to_name(Uuid)),
-    {ok, #state{uuid=Uuid}}.    
+    Data = proplists:get_value(data, Props, <<>>),
+    {ok, #state{uuid=Uuid, data=#data{value=Data}}}.    
 
-handle_call({create, Uuid, Version}, _From, State) ->
+handle_call({create, Uuid, Version, Data}, _From, State) ->
     Children = State#state.children,
     create(Uuid, 
 	   Children#children.version, Version,
 	   sets:is_element(Uuid, Children#children.data),
+	   Data,
 	   State);
 handle_call({delete, Uuid, Version}, _From, State) ->
     Children = State#state.children,
@@ -68,14 +70,14 @@ get_children(State) ->
 	       I <- sets:to_list(Children#children.data)],
     {ok, Children#children.version, length(Data), Data}.
 
-create(_, OurVersion, TheirVersion, _, State) 
+create(_, OurVersion, TheirVersion, _, _, State) 
   when OurVersion =/= TheirVersion -> 
     {reply, {error, stale, "Stale version"}, State};
-create(_, _, _, true, State) ->
+create(_, _, _, true, _, State) ->
     {reply, {error, exists, "Znode already exists"}, State};
-create(Uuid, _, _, false, State) ->
+create(Uuid, _, _, false, Payload, State) ->
     Children = State#state.children,
-    {ok, _} = znodeapi:create_actor(Uuid),
+    {ok, _} = znodeapi:create_actor(Uuid, [{data, Payload}]),
     Data = sets:add_element(Uuid, Children#children.data),
     NewChildren = Children#children{version=Children#children.version+1,
 				    data=Data},

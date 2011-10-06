@@ -29,7 +29,7 @@ start_child(ChildSpec) ->
 init([]) ->
     {ok, { {one_for_one, 5, 10},
 	   [
-	    ?CHILD(znode, worker, [?ROOT_ZNODE])
+	    ?CHILD(znode, worker, [?ROOT_ZNODE, []])
 	   ]
 	 } }.
 

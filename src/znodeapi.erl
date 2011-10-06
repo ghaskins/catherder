@@ -4,8 +4,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -export([uuid_to_name/1, uuid_to_key/1, lookup/1,
 	 strip_rootznode/1,
-	 find/1, create_actor/1,
-	 create/2, delete/2, get_children/1,
+	 find/1, create_actor/2,
+	 create/2, create/3, delete/2, get_children/1,
 	 get_data/1, set_data/3,
 	 subscribe/1, notify/2]).
 
@@ -28,7 +28,7 @@ find(Uuid) ->
 launch_actor(_, 0) ->
     throw("Cannot start znode");
 launch_actor(Uuid, Retries) ->
-    create_actor(Uuid),
+    create_actor(Uuid, []),
     try
 	{Pid, _} = gproc:await(uuid_to_key(Uuid), 500),
 	{ok, Pid}
@@ -37,9 +37,9 @@ launch_actor(Uuid, Retries) ->
 	    launch_actor(Uuid, Retries-1)
     end.
 
-create_actor(Uuid) ->
+create_actor(Uuid, Props) ->
     catherder_sup:start_child({erlang:make_ref(),
-			       {znode, start_link, [Uuid]},
+			       {znode, start_link, [Uuid, Props]},
 			       transient,
 			       brutal_kill,
 			       supervisor,
@@ -74,8 +74,11 @@ call_generic(Uuid, Msg) ->
     end.        
 
 create(Uuid, Version) ->
-    invoke_parent(Uuid, Version, {create, uuid_to_fqn(Uuid), Version}).
-   
+    create(Uuid, Version, <<>>).
+
+create(Uuid, Version, Data) ->
+    invoke_parent(Uuid, Version, {create, uuid_to_fqn(Uuid), Version, Data}).
+  
 delete(Uuid, Version) ->
     invoke_parent(Uuid, Version, {delete, uuid_to_fqn(Uuid), Version}).
 
