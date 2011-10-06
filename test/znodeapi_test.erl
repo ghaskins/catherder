@@ -71,6 +71,20 @@ event_test_() ->
 		{_, _, {data, _, _}} -> ok
 	    after
 		1000 -> throw(timeout)
+	    end,
+	    znodeapi:subscribe("/foo"),
+	    znodeapi:subscribe("/foo/baz/foobar"),
+	    ok = znodeapi:create("/foo/baz"),
+	    receive
+		{_, _, {children, _, _, _}} -> ok
+	    after
+		1000 -> throw(timeout)
+	    end,
+	    ok = znodeapi:create("/foo/baz/foobar"),
+	    receive
+		{_, _, {data, _, _}} -> ok
+	    after
+		1000 -> throw(timeout)
 	    end
 	end)
     }.
