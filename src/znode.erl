@@ -44,9 +44,10 @@ handle_call(unlink, _From, State) ->
     {stop, normal, ok, State};
 handle_call(get_children, _From, State) ->
     Children = State#state.children,
-    Data = Children#children.data,
+    Data = [znodeapi:strip_rootznode(I) || 
+	       I <- sets:to_list(Children#children.data)],
     {reply,
-     {ok, Children#children.version, sets:size(Data), sets:to_list(Data)},
+     {ok, Children#children.version, length(Data), Data},
      State};
 handle_call(_Request, _From, _State) ->
     throw(eimpl).

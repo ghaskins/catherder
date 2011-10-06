@@ -2,8 +2,10 @@
 
 -include("catherder.hrl").
 -include_lib("eunit/include/eunit.hrl").
--export([uuid_to_name/1, uuid_to_key/1, lookup/1, 
-	 find/1, create_actor/1, create/2, delete/2,
+-export([uuid_to_name/1, uuid_to_key/1, lookup/1,
+	 strip_rootznode/1,
+	 find/1, create_actor/1,
+	 create/2, delete/2, get_children/1,
 	 subscribe/1, notify/2]).
 
 uuid_to_name(Uuid) -> lists:flatten("znode-" ++ Uuid).
@@ -48,6 +50,11 @@ extract_parent(Uuid) ->
     Path = lists:map(fun(I) -> "/" ++ I end, SubTokens),
     lists:flatten(Path).
 
+strip_rootznode(Fqn) ->
+    [_ | Tokens] = string:tokens(Fqn, "/"),
+    Path = lists:map(fun(I) -> "/" ++ I end, Tokens),
+    lists:flatten(Path).
+
 invoke_parent(Uuid, Version, Op) ->
     Parent = extract_parent(uuid_to_fqn(Uuid)),
     case lookup(Parent) of
@@ -62,6 +69,14 @@ create(Uuid, Version) ->
    
 delete(Uuid, Version) ->
     invoke_parent(Uuid, Version, {delete, uuid_to_fqn(Uuid), Version}).
+
+get_children(Uuid) ->
+    case lookup(uuid_to_fqn(Uuid)) of
+	undefined ->
+	    {error, bad_arguments, "Invalid znode"};
+	Pid ->
+	    gen_server:call(Pid, get_children)
+    end.
 
 subscribe(Uuid) ->
     Key = {p, g, {?MODULE, uuid_to_fqn(Uuid)}},
@@ -78,6 +93,7 @@ notify(Uuid, Msg) ->
 extract_parent_test() ->
     "/path/to/parent" = extract_parent("/path/to/parent/child").
   
-
+strip_test() ->
+    "/foo/bar" = strip_rootznode(uuid_to_fqn("/foo/bar")).
     
 	
