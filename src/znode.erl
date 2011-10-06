@@ -44,7 +44,7 @@ handle_call({delete, Uuid, Version}, _From, State) ->
 	   State);
 handle_call(unlink, _From, State) ->
     Data = State#state.data,
-    notify_data(State#state.uuid, Data#data.version, <<>>),
+    notify_data(State#state.uuid, Data#data.version+1, <<>>),
     znodeapi:notify(State#state.uuid, unlink),
     {stop, normal, ok, State};
 handle_call(get_children, _From, State) ->
