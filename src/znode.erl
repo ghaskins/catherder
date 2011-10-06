@@ -43,12 +43,7 @@ handle_call(unlink, _From, State) ->
     znodeapi:notify(State#state.uuid, unlink),
     {stop, normal, ok, State};
 handle_call(get_children, _From, State) ->
-    Children = State#state.children,
-    Data = [znodeapi:strip_rootznode(I) || 
-	       I <- sets:to_list(Children#children.data)],
-    {reply,
-     {ok, Children#children.version, length(Data), Data},
-     State};
+    {reply, get_children(State), State};
 handle_call(get_data, _From, State) ->
     Data = State#state.data,
     {reply, {ok, Data#data.version, Data#data.value}, State};
@@ -67,6 +62,12 @@ handle_info(_Info, _State) ->
 terminate(_Reason, _State) ->
     ok.
 
+get_children(State) ->
+    Children = State#state.children,
+    Data = [znodeapi:strip_rootznode(I) || 
+	       I <- sets:to_list(Children#children.data)],
+    {ok, Children#children.version, length(Data), Data}.
+
 create(_, OurVersion, TheirVersion, _, State) 
   when OurVersion =/= TheirVersion -> 
     {reply, {error, stale, "Stale version"}, State};
@@ -78,7 +79,9 @@ create(Uuid, _, _, false, State) ->
     Data = sets:add_element(Uuid, Children#children.data),
     NewChildren = Children#children{version=Children#children.version+1,
 				    data=Data},
-    {reply, ok, State#state{children=NewChildren}}.
+    NewState = State#state{children=NewChildren},
+    notify_children(NewState),
+    {reply, ok, NewState}.
 
 delete(_, OurVersion, TheirVersion, _, _, State)
   when OurVersion =/= TheirVersion -> 
@@ -94,7 +97,9 @@ delete(Uuid, _, _, true, Pid, State) ->
 	    Data = sets:del_element(Uuid, Children#children.data),
 	    NewChildren = Children#children{version=Children#children.version+1,
 					    data=Data},
-	    {reply, ok, State#state{children=NewChildren}};
+	    NewState = State#state{children=NewChildren},
+	    notify_children(NewState),
+	    {reply, ok, NewState};
 	{ok, _, Count, _} ->
 	    {reply, {error, haschildren, "Has children"}, State}
     end.
@@ -109,7 +114,9 @@ set_data(_, _, Payload, State) ->
 		    {data, NewData#data.version, NewData#data.value}),
     {reply, ok, State#state{data=NewData}}.
 
-
+notify_children(State) ->
+    {ok, Version, Count, Data} = get_children(State),
+    znodeapi:notify(State#state.uuid, {children, Version, Count, Data}).
     
 
 
