@@ -97,7 +97,7 @@ subscribe(Uuid) ->
 
 notify(Uuid, Msg) ->
     Key = {?MODULE, Uuid},
-    gproc:send({p, g, Key}, {self(), Key, Msg}).
+    gproc:send({p, g, Key}, {?MODULE, Uuid, Msg}).
 
 %----------------------------------------------------------
 % unit tests

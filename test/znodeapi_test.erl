@@ -63,8 +63,12 @@ event_test_() ->
 	    znodeapi:subscribe("/foo/bar/baz"),
 	    ok = znodeapi:delete("/foo/bar/baz", 2),
 	    receive
-		{_, _, unlink} -> ok;
-		Msg -> throw({unexpected, Msg})
+		{_, _, unlink} -> ok
+	    after
+		1000 -> throw(timeout)
+	    end,
+	    receive
+		{_, _, {data, _, _}} -> ok
 	    after
 		1000 -> throw(timeout)
 	    end

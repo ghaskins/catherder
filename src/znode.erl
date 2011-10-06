@@ -25,7 +25,9 @@ init({Uuid, Props}) ->
 init_(Uuid, Props) ->
     true = gproc:add_global_name(znodeapi:uuid_to_name(Uuid)),
     Data = proplists:get_value(data, Props, <<>>),
-    {ok, #state{uuid=Uuid, data=#data{value=Data}}}.    
+    State = #state{uuid=Uuid, data=#data{value=Data}},
+    notify_data(State),
+    {ok, State}.    
 
 handle_call({create, Uuid, Data}, _From, State) ->
     Children = State#state.children,
@@ -41,6 +43,8 @@ handle_call({delete, Uuid, Version}, _From, State) ->
 	   znodeapi:lookup(Uuid),
 	   State);
 handle_call(unlink, _From, State) ->
+    Data = State#state.data,
+    notify_data(State#state.uuid, Data#data.version, <<>>),
     znodeapi:notify(State#state.uuid, unlink),
     {stop, normal, ok, State};
 handle_call(get_children, _From, State) ->
@@ -78,6 +82,7 @@ create(Uuid, false, Payload, State) ->
     NewChildren = Children#children{version=Children#children.version+1,
 				    data=Data},
     NewState = State#state{children=NewChildren},
+    notify_data(Uuid, 1, Payload),
     notify_children(NewState),
     {reply, ok, NewState}.
 
@@ -108,15 +113,22 @@ set_data(OurVersion, TheirVersion, _, State)
 set_data(_, _, Payload, State) ->
     Data = State#state.data,
     NewData = Data#data{version=Data#data.version+1, value=Payload},
-    znodeapi:notify(State#state.uuid,
-		    {data, NewData#data.version, NewData#data.value}),
-    {reply, ok, State#state{data=NewData}}.
+    NewState = State#state{data=NewData},
+    notify_data(NewState),
+    {reply, ok, NewState}.
 
 notify_children(State) ->
     {ok, Version, Count, Data} = get_children(State),
     znodeapi:notify(State#state.uuid, {children, Version, Count, Data}).
     
+notify_data(State) ->
+    Data = State#state.data,
+    notify_data(State#state.uuid, Data#data.version, Data#data.value).
 
+notify_data(Uuid, Version, Payload) ->
+    znodeapi:notify(Uuid, {data, Version, Payload}).
+
+    
 
     
     
