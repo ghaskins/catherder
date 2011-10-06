@@ -25,6 +25,15 @@ create_test_() ->
 	end)
     }.
 
+getdata_test_() ->
+    {setup, fun setup/0, 
+     ?_test(
+	begin
+	    {ok, 1, <<>>} = znodeapi:get_data("/foo")
+	end)
+    }.
+
+
 delete_test_() ->
     {setup, fun setup/0, 
      ?_test(

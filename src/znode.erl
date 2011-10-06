@@ -5,7 +5,7 @@
 
 -include("catherder.hrl").
 
--record(data, {version=1, value}).
+-record(data, {version=1, value = <<>>}).
 -record(children, {version=1, data=sets:new()}).
 -record(stat, {version=1, extra}).
 -record(state, {uuid, data=#data{}, children=#children{}, stat=#stat{}}).
@@ -49,6 +49,9 @@ handle_call(get_children, _From, State) ->
     {reply,
      {ok, Children#children.version, length(Data), Data},
      State};
+handle_call(get_data, _From, State) ->
+    Data = State#state.data,
+    {reply, {ok, Data#data.version, Data#data.value}, State};
 handle_call(_Request, _From, _State) ->
     throw(eimpl).
 
