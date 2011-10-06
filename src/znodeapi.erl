@@ -2,7 +2,8 @@
 
 -include("catherder.hrl").
 -include_lib("eunit/include/eunit.hrl").
--export([uuid_to_name/1, uuid_to_key/1, find/1, create_actor/1, create/2]).
+-export([uuid_to_name/1, uuid_to_key/1, lookup/1, 
+	 find/1, create_actor/1, create/2, delete/2]).
 
 uuid_to_name(Uuid) -> lists:flatten("znode-" ++ Uuid).
 uuid_to_key(Uuid) -> {n, g, uuid_to_name(Uuid)}.
@@ -40,28 +41,34 @@ create_actor(Uuid) ->
 			       supervisor,
 			       [znode]}).
 
-parent_from_uuid(Uuid) ->
+extract_parent(Uuid) ->
     Tokens = string:tokens(Uuid, "/"),
     SubTokens = lists:sublist(Tokens, erlang:length(Tokens)-1),
     Path = lists:map(fun(I) -> "/" ++ I end, SubTokens),
     lists:flatten(Path).
 
-create(Uuid, Version) ->
-    Fqn = uuid_to_fqn(Uuid),
-    Parent = parent_from_uuid(Fqn),
+invoke_parent(Uuid, Version, Op) ->
+    Parent = extract_parent(uuid_to_fqn(Uuid)),
     case lookup(Parent) of
 	undefined ->
 	    {error, bad_arguments, "Invalid parent"};
 	Pid ->
-	    gen_server:call(Pid, {create, Fqn, Version})
+	    gen_server:call(Pid, Op)
     end.
-    
+
+create(Uuid, Version) ->
+    invoke_parent(Uuid, Version, {create, uuid_to_fqn(Uuid), Version}).
+   
+delete(Uuid, Version) ->
+    invoke_parent(Uuid, Version, {delete, uuid_to_fqn(Uuid), Version}).
+
+ 
 %----------------------------------------------------------
 % unit tests
 %----------------------------------------------------------
 
-parent_from_uuid_test() ->
-    "/path/to/parent" = parent_from_uuid("/path/to/parent/child").
+extract_parent_test() ->
+    "/path/to/parent" = extract_parent("/path/to/parent/child").
   
 
     

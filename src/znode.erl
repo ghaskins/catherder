@@ -38,6 +38,15 @@ handle_call({create, Uuid, Version}, _From, State) ->
 					    data=Data},
 	    {reply, ok, State#state{children=NewChildren}}
     end;
+handle_call({delete, Uuid, Version}, _From, State) ->
+    Children = State#state.children,
+    delete(Uuid,
+	   Children#children.version, Version,
+	   sets:is_element(Uuid, Children#children.data),
+	   znodeapi:lookup(Uuid),
+	   State);
+handle_call(unlink, _From, State) ->
+    {stop, normal, ok, State};
 handle_call(_Request, _From, _State) ->
     throw(eimpl).
 
@@ -50,4 +59,21 @@ handle_info(_Info, _State) ->
 terminate(_Reason, _State) ->
     ok.
 
+delete(_, OurVersion, TheirVersion, _, _, State)
+  when OurVersion =/= TheirVersion -> 
+    {reply, {error, stale, "Stale version"}, State};
+delete(_, _, _, IsPresent, Pid, State)
+  when IsPresent =:= false; Pid =:= undefined ->
+    {reply, {error, notfound, "Could not find node"}, State};
+delete(Uuid, _, _, true, Pid, State) ->
+    Children = State#state.children,
+    ok = gen_server:call(Pid, unlink),
+    Data = sets:del_element(Uuid, Children#children.data),
+    NewChildren = Children#children{version=Children#children.version+1,
+				    data=Data},
+    {reply, ok, State#state{children=NewChildren}}.
+
+
+    
+    
 

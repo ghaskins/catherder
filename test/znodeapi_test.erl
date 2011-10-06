@@ -22,6 +22,16 @@ create_test_() ->
 	    {error, bad_arguments, _} = znodeapi:create("/bar/foo", 1)
 	end)
     }.
+
+delete_test_() ->
+    {setup, fun setup/0, 
+     ?_test(
+	begin
+	    {error, stale, _} = znodeapi:delete("/foo/bar", 1),
+	    ok = znodeapi:delete("/foo/bar", 2),
+	    {error, bad_arguments, _} = znodeapi:create("/foo/bar/baz", 1)
+	end)
+    }.
    
     
 	
