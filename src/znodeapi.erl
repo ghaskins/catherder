@@ -3,7 +3,8 @@
 -include("catherder.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -export([uuid_to_name/1, uuid_to_key/1, lookup/1, 
-	 find/1, create_actor/1, create/2, delete/2]).
+	 find/1, create_actor/1, create/2, delete/2,
+	 subscribe/1, notify/2]).
 
 uuid_to_name(Uuid) -> lists:flatten("znode-" ++ Uuid).
 uuid_to_key(Uuid) -> {n, g, uuid_to_name(Uuid)}.
@@ -62,7 +63,14 @@ create(Uuid, Version) ->
 delete(Uuid, Version) ->
     invoke_parent(Uuid, Version, {delete, uuid_to_fqn(Uuid), Version}).
 
- 
+subscribe(Uuid) ->
+    Key = {p, g, {?MODULE, uuid_to_fqn(Uuid)}},
+    gproc:reg(Key).
+
+notify(Uuid, Msg) ->
+    Key = {?MODULE, Uuid},
+    gproc:send({p, g, Key}, {self(), Key, Msg}).
+
 %----------------------------------------------------------
 % unit tests
 %----------------------------------------------------------

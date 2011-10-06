@@ -11,7 +11,7 @@
 -record(state, {uuid, data=#data{}, children=#children{}, stat=#stat{}}).
 
 start_link(Uuid) ->
-    gen_server:start_link(?MODULE, [Uuid], []).
+    gen_server:start_link(?MODULE, Uuid, []).
 
 init(?ROOT_ZNODE) ->
     init_(?ROOT_ZNODE);
@@ -40,6 +40,7 @@ handle_call({delete, Uuid, Version}, _From, State) ->
 	   znodeapi:lookup(Uuid),
 	   State);
 handle_call(unlink, _From, State) ->
+    znodeapi:notify(State#state.uuid, unlink),
     {stop, normal, ok, State};
 handle_call(get_children, _From, State) ->
     Children = State#state.children,

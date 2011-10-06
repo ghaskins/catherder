@@ -44,6 +44,21 @@ deletechildren_test_() ->
 	end)
     }.
 
+event_test_() ->
+    {setup, fun setup/0, 
+     ?_test(
+	begin
+	    znodeapi:subscribe("/foo/bar/baz"),
+	    ok = znodeapi:delete("/foo/bar/baz", 2),
+	    receive
+		{_, _, unlink} -> ok;
+		Msg -> throw({unexpected, Msg})
+	    after
+		1000 -> throw(timeout)
+	    end
+	end)
+    }.
+
    
     
 	
