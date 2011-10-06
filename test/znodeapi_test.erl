@@ -25,11 +25,13 @@ create_test_() ->
 	end)
     }.
 
-getdata_test_() ->
+data_test_() ->
     {setup, fun setup/0, 
      ?_test(
 	begin
-	    {ok, 1, <<>>} = znodeapi:get_data("/foo")
+	    {ok, 1, <<>>} = znodeapi:get_data("/foo"),
+	    ok = znodeapi:set_data("/foo", 1, <<"bar">>),
+	    {ok, 2, <<"bar">>} = znodeapi:get_data("/foo")
 	end)
     }.
 

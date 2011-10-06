@@ -6,7 +6,7 @@
 	 strip_rootznode/1,
 	 find/1, create_actor/1,
 	 create/2, delete/2, get_children/1,
-	 get_data/1,
+	 get_data/1, set_data/3,
 	 subscribe/1, notify/2]).
 
 uuid_to_name(Uuid) -> lists:flatten("znode-" ++ Uuid).
@@ -65,7 +65,7 @@ invoke_parent(Uuid, Version, Op) ->
 	    gen_server:call(Pid, Op)
     end.
 
-get_generic(Uuid, Msg) ->
+call_generic(Uuid, Msg) ->
     case lookup(uuid_to_fqn(Uuid)) of
 	undefined ->
 	    {error, bad_arguments, "Invalid znode"};
@@ -80,10 +80,13 @@ delete(Uuid, Version) ->
     invoke_parent(Uuid, Version, {delete, uuid_to_fqn(Uuid), Version}).
 
 get_children(Uuid) ->
-    get_generic(Uuid, get_children).
+    call_generic(Uuid, get_children).
 
 get_data(Uuid) ->
-    get_generic(Uuid, get_data).
+    call_generic(Uuid, get_data).
+
+set_data(Uuid, Version, Data) ->
+    call_generic(Uuid, {set_data, Version, Data}). 
 
 subscribe(Uuid) ->
     Key = {p, g, {?MODULE, uuid_to_fqn(Uuid)}},

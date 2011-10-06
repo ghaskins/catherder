@@ -52,6 +52,9 @@ handle_call(get_children, _From, State) ->
 handle_call(get_data, _From, State) ->
     Data = State#state.data,
     {reply, {ok, Data#data.version, Data#data.value}, State};
+handle_call({set_data, Version, Payload}, _From, State) ->
+    Data = State#state.data,
+    set_data(Data#data.version, Version, Payload, State);
 handle_call(_Request, _From, _State) ->
     throw(eimpl).
 
@@ -95,6 +98,17 @@ delete(Uuid, _, _, true, Pid, State) ->
 	{ok, _, Count, _} ->
 	    {reply, {error, haschildren, "Has children"}, State}
     end.
+
+set_data(OurVersion, TheirVersion, _, State)
+  when OurVersion =/= TheirVersion -> 
+    {reply, {error, stale, "Stale version"}, State};
+set_data(_, _, Payload, State) ->
+    Data = State#state.data,
+    {reply, ok, State#state{data=Data#data{version=Data#data.version+1,
+					   value=Payload}}}.
+
+
+    
 
 
     
